@@ -56,7 +56,7 @@ All components MUST:
 
 - Node.js + Express 4
 - TypeScript (strict mode)
-- Microsoft SQL Server (relational database)
+- Oracle Database (relational database)
 - Layered Architecture (routes → controllers → services → repositories)
 
 ---

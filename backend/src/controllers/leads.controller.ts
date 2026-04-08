@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import type { ApiResponse } from '../types/api.types.js';
 import type { LeadResponseDTO, NewsletterResponseDTO } from '../types/leads.types.js';
 import * as leadsService from '../services/leads.service.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Controller: Contact Lead (POST /api/v1/leads/contact)
@@ -33,7 +34,7 @@ export async function createContactLead(
       message: 'Interesse registrado com sucesso!',
     });
   } catch (error) {
-    console.error('[LeadsController] createContactLead error:', (error as Error).message);
+    logger.error({ err: error }, '[LeadsController] createContactLead error');
     res.status(500).json({
       success: false,
       error: {
@@ -72,7 +73,7 @@ export async function createNewsletterSubscription(
       message: 'Inscrição na newsletter realizada com sucesso!',
     });
   } catch (error) {
-    console.error('[LeadsController] createNewsletterSubscription error:', (error as Error).message);
+    logger.error({ err: error }, '[LeadsController] createNewsletterSubscription error');
     res.status(500).json({
       success: false,
       error: {

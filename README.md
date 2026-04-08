@@ -95,7 +95,10 @@ O projeto segue o **Modular Component Pattern (MCP)**:
 |------------|-----|
 | **Express 4** | Framework HTTP |
 | **Oracle Database** | Banco relacional (LGPD compliant) |
+| **Redis** | Rate-limiting horizontal e estresse preventivo |
+| **Zod** | Validação de input com tipagem rigorosa |
 | **TypeScript** | Tipagem estrita |
+| **Pino** | Logger estruturado (JSON/Async) |
 | **tsx** | Runtime dev com hot-reload |
 
 ### Setup

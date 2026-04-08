@@ -169,7 +169,7 @@ Frontend MUST:
 
 ### `GET /api/v1/health` ✅ Implemented
 
-- Returns server status and timestamp
+- Returns server status, database connectivity (`database: connected/disconnected`), and timestamp
 
 ---
 

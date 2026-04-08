@@ -1,5 +1,6 @@
 import type { Request, Response, NextFunction } from 'express';
 import type { ApiResponse } from '../types/api.types.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Global error handler.
@@ -15,8 +16,11 @@ export function errorHandler(
   const isDev = process.env.NODE_ENV === 'development';
 
   // Log error server-side (sanitize sensitive fields)
-  console.error(`[ERROR] ${err.message}`);
-  if (isDev) console.error(err.stack);
+  if (isDev) {
+    logger.error({ err }, `[ERROR] ${err.message}`);
+  } else {
+    logger.error(`[ERROR] ${err.message}`);
+  }
 
   res.status(500).json({
     success: false,

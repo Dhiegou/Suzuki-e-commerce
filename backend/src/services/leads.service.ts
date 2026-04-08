@@ -1,10 +1,3 @@
-import {
-  isValidEmail,
-  isValidCPF,
-  isValidPhone,
-  isValidCEP,
-  isValidName,
-} from '../utils/validators.js';
 import { hashCPF, maskIP } from '../utils/crypto.js';
 import * as leadsRepo from '../repositories/leads.repository.js';
 import type {
@@ -13,6 +6,7 @@ import type {
   LeadResponseDTO,
   NewsletterResponseDTO,
 } from '../types/leads.types.js';
+import { z } from 'zod';
 
 // ── Validation Errors ──
 
@@ -21,46 +15,59 @@ interface ValidationResult {
   errors: Record<string, string>;
 }
 
+// ── Schema Validation with Zod ──
+
+// Modulo 11 check for CPF inside Zod refining
+function isValidCPFRuntime(cpf: string): boolean {
+  const d = cpf.replace(/\D/g, '');
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+  for (let t = 9; t <= 10; t++) {
+    let sum = 0;
+    for (let i = 0; i < t; i++) {
+      sum += parseInt(d.charAt(i)) * (t + 1 - i);
+    }
+    let rem = (sum * 10) % 11;
+    if (rem === 10) rem = 0;
+    if (rem !== parseInt(d.charAt(t))) return false;
+  }
+  return true;
+}
+
+const contactLeadSchema = z.object({
+  nome: z.string().min(3, 'Nome deve ter pelo menos 3 caracteres'),
+  email: z.string().email('E-mail inválido'),
+  cpf: z.string().refine(isValidCPFRuntime, 'CPF inválido'),
+  telefone: z.string().min(14, 'Telefone inválido'), // Adjust based on mask
+  cep: z.string().min(8, 'CEP inválido'),
+  concessionaria: z.string().min(1, 'Selecione uma concessionária'),
+  modeloInteresse: z.string().optional(),
+  lgpdConsent: z.boolean().refine((val) => val === true, 'O consentimento LGPD é obrigatório para envio'),
+});
+
+const newsletterLeadSchema = z.object({
+  email: z.string().email('E-mail inválido'),
+  lgpdConsent: z.boolean().refine((val) => val === true, 'O consentimento LGPD é obrigatório'),
+});
+
+function parseZodErrors(error: z.ZodError<any>): Record<string, string> {
+  const errorObj: Record<string, string> = {};
+  error.issues.forEach((e: z.ZodIssue) => {
+    if (e.path && e.path[0]) {
+      errorObj[e.path[0].toString()] = e.message;
+    }
+  });
+  return errorObj;
+}
+
 /**
- * Validate a contact lead submission.
- * ALL business rules are enforced here — controllers are thin.
+ * Validate a contact lead submission using Zod.
  */
 function validateContactLead(data: CreateContactLeadDTO): ValidationResult {
-  const errors: Record<string, string> = {};
-
-  if (!data.nome || !isValidName(data.nome)) {
-    errors.nome = 'Nome deve ter pelo menos 3 caracteres';
+  const result = contactLeadSchema.safeParse(data);
+  if (!result.success) {
+    return { valid: false, errors: parseZodErrors(result.error) };
   }
-
-  if (!data.email || !isValidEmail(data.email)) {
-    errors.email = 'E-mail inválido';
-  }
-
-  if (!data.cpf || !isValidCPF(data.cpf)) {
-    errors.cpf = 'CPF inválido';
-  }
-
-  if (!data.telefone || !isValidPhone(data.telefone)) {
-    errors.telefone = 'Telefone inválido';
-  }
-
-  if (!data.cep || !isValidCEP(data.cep)) {
-    errors.cep = 'CEP inválido';
-  }
-
-  if (!data.concessionaria) {
-    errors.concessionaria = 'Selecione uma concessionária';
-  }
-
-  // LGPD: Consent is MANDATORY
-  if (!data.lgpdConsent) {
-    errors.lgpdConsent = 'O consentimento LGPD é obrigatório para envio';
-  }
-
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
+  return { valid: true, errors: {} };
 }
 
 /**
@@ -110,23 +117,14 @@ export async function createContactLead(
 }
 
 /**
- * Validate a newsletter subscription.
+ * Validate a newsletter subscription using Zod.
  */
 function validateNewsletterLead(data: CreateNewsletterLeadDTO): ValidationResult {
-  const errors: Record<string, string> = {};
-
-  if (!data.email || !isValidEmail(data.email)) {
-    errors.email = 'E-mail inválido';
+  const result = newsletterLeadSchema.safeParse(data);
+  if (!result.success) {
+    return { valid: false, errors: parseZodErrors(result.error) };
   }
-
-  if (!data.lgpdConsent) {
-    errors.lgpdConsent = 'O consentimento LGPD é obrigatório';
-  }
-
-  return {
-    valid: Object.keys(errors).length === 0,
-    errors,
-  };
+  return { valid: true, errors: {} };
 }
 
 /**
